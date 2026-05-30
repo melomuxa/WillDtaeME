@@ -28,10 +28,10 @@ export const INVITE_EXPIRY_DAYS = 30
 // ─── Fleeing No Button ────────────────────────────────────────────────────────
 
 /** Pixel radius within which the No button starts fleeing the cursor. */
-export const NO_BUTTON_FLEE_RADIUS_PX = 130
+export const NO_BUTTON_FLEE_RADIUS_PX = 8
 
 /** Pixel distance the No button jumps each time it flees the cursor. */
-export const NO_BUTTON_FLEE_SPEED_PX = 180
+export const NO_BUTTON_FLEE_SPEED_PX = 160
 
 
 // ─── Rate Limiting ────────────────────────────────────────────────────────────
@@ -43,14 +43,51 @@ export const RATE_LIMIT_MAX_ATTEMPTS = 3
 export const RATE_LIMIT_WINDOW_SECONDS = 3600
 
 
-// ─── Location Option Categories ───────────────────────────────────────────────
+// ─── Location Option Categories & Icons ──────────────────────────────────────
+
+/** Primary categories shown as quick-pick buttons on the form. */
+export const PRIMARY_CATEGORIES = [
+  { value: 'Restaurant', icon: '🍽️', label: 'Restaurant' },
+  { value: 'Café',       icon: '☕',  label: 'Café' },
+  { value: 'Bar',        icon: '🍸',  label: 'Bar' },
+  { value: 'Cinema',     icon: '🍿',  label: 'Cinema' },
+  { value: 'Outdoor',    icon: '🌳',  label: 'Outdoor' },
+] as const
+
+/** Extra icons shown when the user picks "Other". Grouped by theme. */
+export const OTHER_CATEGORY_ICONS = [
+  // Food & Drink
+  { value: '🍦 Ice Cream',  icon: '🍦', label: 'Ice Cream' },
+  { value: '🍺 Beer',       icon: '🍺', label: 'Beer' },
+  { value: '🍕 Pizza',      icon: '🍕', label: 'Pizza' },
+  { value: '🍜 Noodles',    icon: '🍜', label: 'Noodles' },
+  { value: '🥗 Salad',      icon: '🥗', label: 'Salad' },
+  { value: '🍰 Dessert',    icon: '🍰', label: 'Dessert' },
+  { value: '🌮 Tacos',      icon: '🌮', label: 'Tacos' },
+  { value: '🍣 Sushi',      icon: '🍣', label: 'Sushi' },
+  // Activities
+  { value: '🚶 Walking',    icon: '🚶', label: 'Walking' },
+  { value: '🚴 Biking',     icon: '🚴', label: 'Biking' },
+  { value: '🚗 Driving',    icon: '🚗', label: 'Driving' },
+  { value: '🎮 Gaming',     icon: '🎮', label: 'Gaming' },
+  { value: '🎭 Theatre',    icon: '🎭', label: 'Theatre' },
+  { value: '🏊 Swimming',   icon: '🏊', label: 'Swimming' },
+  { value: '🎳 Bowling',    icon: '🎳', label: 'Bowling' },
+  { value: '🎨 Art',        icon: '🎨', label: 'Art' },
+] as const
+
+/** Returns the icon emoji for a given category value. Falls back to 📍. */
+export function getCategoryIcon(category: string | null | undefined): string {
+  if (!category) return '📍'
+  const primary = PRIMARY_CATEGORIES.find((c) => c.value === category)
+  if (primary) return primary.icon
+  // For "other" categories the value IS "emoji label", so grab the first char
+  const match = category.match(/^\p{Emoji}/u)
+  return match ? match[0] : '📍'
+}
 
 export const LOCATION_CATEGORIES = [
-  'Restaurant',
-  'Café',
-  'Bar',
-  'Outdoor',
-  'Cinema',
+  ...PRIMARY_CATEGORIES.map((c) => c.value),
   'Other',
 ] as const
 

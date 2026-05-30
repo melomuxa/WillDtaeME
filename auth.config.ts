@@ -1,21 +1,19 @@
 import type { NextAuthConfig } from 'next-auth'
 import Google from 'next-auth/providers/google'
-import Resend from 'next-auth/providers/resend'
 
 /**
- * Edge-safe auth config — no Prisma/Node.js imports.
- * Used by middleware.ts which runs in the Edge Runtime.
+ * Edge-safe auth config — no Prisma/Node.js imports, no email provider.
+ * Used by proxy.ts which runs in the Edge Runtime.
  *
- * The full config (with PrismaAdapter) lives in auth.ts.
+ * Resend email provider is intentionally excluded here because it requires
+ * a database adapter to store verification tokens. It is added in auth.ts
+ * which runs in the Node.js runtime with PrismaAdapter.
  */
 export const authConfig: NextAuthConfig = {
   providers: [
     Google({
       clientId: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-    }),
-    Resend({
-      from: process.env.EMAIL_FROM!,
     }),
   ],
   pages: {

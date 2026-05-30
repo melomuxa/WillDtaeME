@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useState } from 'react'
 import { ROUTES, API_ROUTES } from '@/lib/routes'
 import { CopyButton } from '@/components/ui/CopyButton'
+import { getCategoryIcon } from '@/lib/constants'
 import type { DashboardInvitation } from '@/types'
 import { InviteStatus } from '@/app/generated/prisma/enums'
 
@@ -71,8 +72,19 @@ export function InvitationCard({ invitation }: InvitationCardProps) {
           {/* Accepted details */}
           {invitation.status === InviteStatus.ACCEPTED && chosenLocation && chosenTime && (
             <div className="text-sm text-green-700 mb-3 space-y-0.5">
-              <p>📍 {chosenLocation.name}</p>
+              <p>{getCategoryIcon(chosenLocation.category)} {chosenLocation.name}</p>
               <p>🗓️ {chosenTime.label}</p>
+            </div>
+          )}
+
+          {/* Location previews when pending */}
+          {invitation.status !== InviteStatus.ACCEPTED && (
+            <div className="flex gap-1 flex-wrap mb-2">
+              {invitation.locationOptions.map((loc) => (
+                <span key={loc.id} className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
+                  {getCategoryIcon(loc.category)} {loc.name}
+                </span>
+              ))}
             </div>
           )}
 

@@ -83,6 +83,10 @@ export async function POST(
     }
 
     // 6. Accept the invitation and save choices atomically
+    const receiverPreferredTime = typeof body.receiverPreferredTime === 'string'
+      ? body.receiverPreferredTime
+      : undefined
+
     await prisma.$transaction([
       prisma.invitation.update({
         where: { shortId },
@@ -91,6 +95,9 @@ export async function POST(
           chosenLocationId: chosenLocation.id,
           chosenTimeId: chosenTime.id,
           respondedAt: new Date(),
+          receiverNote: receiverPreferredTime
+            ? `Preferred time: ${receiverPreferredTime}`
+            : null,
         },
       }),
     ])

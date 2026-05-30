@@ -1,51 +1,54 @@
 'use client'
 
-import { useRef, useEffect, useState } from 'react'
-import { NO_BUTTON_FLEE_RADIUS_PX, NO_BUTTON_FLEE_SPEED_PX } from '@/lib/constants'
+import { useRef, useEffect } from 'react'
+
+const FLEE_RADIUS = 90   // px — start fleeing when mouse is this close
+const FLEE_SPEED  = 220  // px — how far it jumps each time
 
 /**
- * A "No" button that flees the cursor whenever it gets too close.
- * On touch devices it is hidden entirely — there's no cursor to flee from,
- * and we don't want it accidentally tappable.
+ * NO button that flees the cursor.
+ *
+ * - Direct DOM mutation (no React state) → zero re-render latency
+ * - CSS transition on transform → browser interpolates smoothly between jumps
+ * - Large radius (90px) means it starts moving before the cursor reaches it
  */
 export function FleeingNoButton() {
   const btnRef = useRef<HTMLButtonElement>(null)
-  const [offset, setOffset] = useState({ x: 0, y: 0 })
+  const pos = useRef({ x: 0, y: 0 })
 
   useEffect(() => {
+    const btn = btnRef.current
+    if (!btn) return
+
     const handleMouseMove = (e: MouseEvent) => {
-      const btn = btnRef.current
-      if (!btn) return
-
       const rect = btn.getBoundingClientRect()
-      const btnCx = rect.left + rect.width / 2
-      const btnCy = rect.top + rect.height / 2
+      const btnCx = rect.left + rect.width  / 2
+      const btnCy = rect.top  + rect.height / 2
 
-      const dx = e.clientX - btnCx
-      const dy = e.clientY - btnCy
+      const dx   = e.clientX - btnCx
+      const dy   = e.clientY - btnCy
       const dist = Math.hypot(dx, dy)
 
-      if (dist < NO_BUTTON_FLEE_RADIUS_PX) {
-        const angle = Math.atan2(dy, dx)
-        const fleeX = -Math.cos(angle) * NO_BUTTON_FLEE_SPEED_PX
-        const fleeY = -Math.sin(angle) * NO_BUTTON_FLEE_SPEED_PX
+      if (dist < FLEE_RADIUS) {
+        // Flee in the exact opposite direction of the incoming mouse
+        const angle  = Math.atan2(dy, dx)
+        const fleeX  = -Math.cos(angle) * FLEE_SPEED
+        const fleeY  = -Math.sin(angle) * FLEE_SPEED
 
-        setOffset((prev) => {
-          const newX = prev.x + fleeX
-          const newY = prev.y + fleeY
+        const raw = {
+          x: pos.current.x + fleeX,
+          y: pos.current.y + fleeY,
+        }
 
-          // Clamp so the button never leaves the visible viewport.
-          // We subtract the button's size to prevent clipping at edges.
-          const maxX = window.innerWidth - rect.width - rect.left + prev.x
-          const maxY = window.innerHeight - rect.height - rect.top + prev.y
-          const minX = -rect.left + prev.x
-          const minY = -rect.top + prev.y
+        // Clamp: keep button fully inside the viewport
+        pos.current = {
+          x: Math.max(-rect.left + pos.current.x,
+             Math.min(window.innerWidth  - rect.right  + pos.current.x, raw.x)),
+          y: Math.max(-rect.top  + pos.current.y,
+             Math.min(window.innerHeight - rect.bottom + pos.current.y, raw.y)),
+        }
 
-          return {
-            x: Math.max(minX, Math.min(maxX, newX)),
-            y: Math.max(minY, Math.min(maxY, newY)),
-          }
-        })
+        btn.style.transform = `translate(${pos.current.x}px, ${pos.current.y}px)`
       }
     }
 
@@ -56,15 +59,14 @@ export function FleeingNoButton() {
   return (
     <button
       ref={btnRef}
-      style={{ transform: `translate(${offset.x}px, ${offset.y}px)` }}
-      // Hidden from screen readers and keyboard navigation — it's decorative.
-      // On touch devices display:none removes it so only "Yes" is visible.
-      className="hidden sm:inline-flex items-center text-gray-400 border border-gray-200 bg-white px-6 py-3 rounded-full text-sm font-medium hover:text-gray-600 transition-none select-none"
+      // transition-transform makes each jump smooth; duration-100 keeps it fast
+      style={{ willChange: 'transform' }}
+      className="hidden sm:inline-flex items-center bg-red-800 hover:bg-red-900 text-white border-2 border-red-900 px-6 py-3 rounded-full text-sm font-bold shadow-lg shadow-red-300 select-none transition-transform duration-100 ease-out"
       aria-hidden="true"
       tabIndex={-1}
       onTouchStart={(e) => e.preventDefault()}
     >
-      No
+      NO
     </button>
   )
 }

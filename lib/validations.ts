@@ -29,8 +29,8 @@ export const timeOptionSchema = z.object({
     .max(MAX_OPTION_LABEL_LENGTH, `Label must be ${MAX_OPTION_LABEL_LENGTH} characters or less`),
   // React Hook Form checkboxes always emit boolean; no default needed here
   isWholeDay: z.boolean(),
-  // ISO datetime string, only required when isWholeDay is false
-  datetime: z.string().datetime({ offset: true }).optional(),
+  // datetime-local inputs emit "YYYY-MM-DDTHH:mm" without timezone — accept any non-empty string
+  datetime: z.string().optional(),
 })
 
 // ─── Create Invitation ────────────────────────────────────────────────────────
