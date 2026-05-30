@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx create-next-app@latest . --typescript --tailwind --app --no-git --import-alias \"@/*\" --yes)",
+      "Bash(npm --version)",
+      "Read(//usr/local/bin/**)",
+      "Read(//opt/homebrew/bin/**)",
+      "Read(//Users/tornikemeladze/.nvm/versions/**)",
+      "Bash(cat ~/.zshrc 2>/dev/null | grep -E \"nvm|node|volta|fnm|PATH\" | head -20)",
+      "Read(//Users/tornikemeladze/**)",
+      "Bash(curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh)",
+      "Bash(bash)"
+    ]
+  }
+}
