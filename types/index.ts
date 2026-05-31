@@ -45,6 +45,7 @@ export interface PublicInvitation {
 export interface DashboardInvitation {
   id: string
   shortId: string
+  recipientName: string | null
   personalMessage: string | null
   status: InviteStatus
   createdAt: Date
@@ -71,6 +72,7 @@ export interface CreateTimeOptionInput {
 }
 
 export interface CreateInvitationInput {
+  recipientName?: string
   personalMessage?: string
   locationOptions: CreateLocationOptionInput[]
   timeOptions: CreateTimeOptionInput[]

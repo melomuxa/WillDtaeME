@@ -25,6 +25,7 @@ export async function GET(): Promise<NextResponse> {
       select: {
         id: true,
         shortId: true,
+        recipientName: true,
         personalMessage: true,
         status: true,
         createdAt: true,
@@ -84,6 +85,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       data: {
         shortId,
         senderId: session.user.id,
+        recipientName: parsed.data.recipientName?.trim() || null,
         personalMessage: parsed.data.personalMessage ?? null,
         locationOptions: {
           create: parsed.data.locationOptions.map((opt, i) => ({

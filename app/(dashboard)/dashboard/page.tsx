@@ -14,6 +14,7 @@ export default async function DashboardPage() {
     select: {
       id: true,
       shortId: true,
+      recipientName: true,
       personalMessage: true,
       status: true,
       createdAt: true,

@@ -54,11 +54,19 @@ export default async function InvitationDetailPage({
 
         <div className="bg-white rounded-2xl shadow-sm border border-pink-100 p-8">
           <div className="flex items-start justify-between mb-6">
-            <h1 className="text-2xl font-bold text-gray-900">Invitation Details</h1>
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">
+                {invitation.recipientName
+                  ? `Invitation for ${invitation.recipientName}`
+                  : 'Invitation Details'}
+              </h1>
+            </div>
             <span
               className={`text-sm font-semibold px-3 py-1 rounded-full ${STATUS_COLORS[invitation.status]}`}
             >
-              {STATUS_LABELS[invitation.status]}
+              {invitation.status === InviteStatus.ACCEPTED && invitation.recipientName
+                ? `${invitation.recipientName} said YES! ❤️`
+                : STATUS_LABELS[invitation.status]}
             </span>
           </div>
 

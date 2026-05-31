@@ -107,6 +107,7 @@ export async function POST(
     sendAcceptanceEmail({
       to: invitation.sender.email,
       senderName: invitation.sender.name ?? 'there',
+      recipientName: invitation.recipientName ?? null,
       locationName: chosenLocation.name,
       timeLabel: chosenTime.label,
     }).catch((err) => {

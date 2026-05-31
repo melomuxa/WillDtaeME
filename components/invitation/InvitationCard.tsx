@@ -8,6 +8,10 @@ import { getCategoryIcon } from '@/lib/constants'
 import type { DashboardInvitation } from '@/types'
 import { InviteStatus } from '@/app/generated/prisma/enums'
 
+function acceptedLabel(name: string | null) {
+  return name ? `${name} said YES! ❤️` : 'Accepted ❤️'
+}
+
 const STATUS_LABELS: Record<InviteStatus, string> = {
   PENDING: 'Pending',
   ACCEPTED: 'Accepted ❤️',
@@ -56,7 +60,9 @@ export function InvitationCard({ invitation }: InvitationCardProps) {
             <span
               className={`text-xs font-semibold px-2.5 py-0.5 rounded-full ${STATUS_COLORS[invitation.status]}`}
             >
-              {STATUS_LABELS[invitation.status]}
+              {invitation.status === InviteStatus.ACCEPTED
+                ? acceptedLabel(invitation.recipientName)
+                : STATUS_LABELS[invitation.status]}
             </span>
             <span className="text-xs text-gray-400">
               {new Date(invitation.createdAt).toLocaleDateString()}

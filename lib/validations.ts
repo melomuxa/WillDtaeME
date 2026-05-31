@@ -36,6 +36,10 @@ export const timeOptionSchema = z.object({
 // ─── Create Invitation ────────────────────────────────────────────────────────
 
 export const createInvitationSchema = z.object({
+  recipientName: z
+    .string()
+    .max(60, 'Name must be 60 characters or less')
+    .optional(),
   personalMessage: z
     .string()
     .max(

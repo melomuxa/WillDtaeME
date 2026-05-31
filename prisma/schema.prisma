@@ -67,6 +67,7 @@ model Invitation {
   senderId        String
   sender          User          @relation(fields: [senderId], references: [id], onDelete: Cascade)
 
+  recipientName   String?       // Name of the person being invited (e.g. "Liza")
   personalMessage String?
   status          InviteStatus  @default(PENDING)
 

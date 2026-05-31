@@ -20,6 +20,7 @@ function getResend(): Resend {
 interface AcceptanceEmailProps {
   to: string
   senderName: string
+  recipientName: string | null
   locationName: string
   timeLabel: string
 }
@@ -36,12 +37,12 @@ export async function sendAcceptanceEmail(props: AcceptanceEmailProps): Promise<
   await getResend().emails.send({
     from: env.EMAIL_FROM,
     to: props.to,
-    subject: '💕 They said YES!',
+    subject: props.recipientName ? `💕 ${props.recipientName} said YES!` : '💕 They said YES!',
     html: `
       <!DOCTYPE html>
       <html>
         <body style="font-family: sans-serif; max-width: 480px; margin: 0 auto; padding: 32px 16px; color: #1a1a1a;">
-          <h1 style="color: #e91e8c; margin-bottom: 8px;">They said YES! 🎉</h1>
+          <h1 style="color: #e91e8c; margin-bottom: 8px;">${props.recipientName ? escapeHtml(props.recipientName) + ' said YES!' : 'They said YES!'} 🎉</h1>
           <p>Great news, ${escapeHtml(props.senderName)}!</p>
           <p>Your date invitation was accepted. Here are the details:</p>
           <table style="margin: 24px 0; border-collapse: collapse; width: 100%;">

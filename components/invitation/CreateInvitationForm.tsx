@@ -28,6 +28,7 @@ export function CreateInvitationForm() {
   const form = useForm<CreateInvitationSchema, any, CreateInvitationSchema>({
     resolver: zodResolver(createInvitationSchema) as any,
     defaultValues: {
+      recipientName: '',
       personalMessage: '',
       locationOptions: [{ name: '', category: '', imageUrl: '', address: '' }],
       timeOptions: [{ label: '', isWholeDay: false, datetime: '' }],
@@ -135,6 +136,21 @@ export function CreateInvitationForm() {
       {/* ── Step 0: Personal Message ── */}
       {step === 0 && (
         <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Who are you inviting? <span className="text-gray-400 font-normal">(optional)</span>
+            </label>
+            <input
+              {...register('recipientName')}
+              type="text"
+              maxLength={60}
+              placeholder="e.g. Liza, Alex, Sarah…"
+              className="w-full border border-gray-200 rounded-xl px-4 py-3 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-pink-300"
+            />
+            {errors.recipientName && (
+              <p className="text-red-500 text-sm mt-1">{errors.recipientName.message}</p>
+            )}
+          </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Personal message <span className="text-gray-400 font-normal">(optional)</span>
