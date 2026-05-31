@@ -2,50 +2,50 @@
 
 import { useRef, useEffect } from 'react'
 
-const FLEE_RADIUS = 90   // px — start fleeing when mouse is this close
-const FLEE_SPEED  = 220  // px — how far it jumps each time
+const FLEE_RADIUS = 90  // px — start fleeing when cursor is this close
+const FLEE_SPEED  = 90  // px — how far it moves each time (small = subtle)
 
-/**
- * NO button that flees the cursor.
- *
- * - Direct DOM mutation (no React state) → zero re-render latency
- * - CSS transition on transform → browser interpolates smoothly between jumps
- * - Large radius (90px) means it starts moving before the cursor reaches it
- */
 export function FleeingNoButton() {
   const btnRef = useRef<HTMLButtonElement>(null)
+
+  // Tracks the TARGET offset (where the button is going, not mid-animation).
+  // Using target (not getBoundingClientRect) fixes the disappearing bug:
+  // getBoundingClientRect returns mid-animation positions during CSS transitions,
+  // which makes clamping calculations wrong and lets the button drift off screen.
   const pos = useRef({ x: 0, y: 0 })
+
+  // Natural resting position — captured once on mount, never changes.
+  const natural = useRef({ left: 0, top: 0, width: 0, height: 0 })
 
   useEffect(() => {
     const btn = btnRef.current
     if (!btn) return
 
-    const handleMouseMove = (e: MouseEvent) => {
-      const rect = btn.getBoundingClientRect()
-      const btnCx = rect.left + rect.width  / 2
-      const btnCy = rect.top  + rect.height / 2
+    // Capture resting position before any movement
+    const r = btn.getBoundingClientRect()
+    natural.current = { left: r.left, top: r.top, width: r.width, height: r.height }
 
-      const dx   = e.clientX - btnCx
-      const dy   = e.clientY - btnCy
+    const handleMouseMove = (e: MouseEvent) => {
+      const n = natural.current
+
+      // Use TARGET position (pos.current) — not getBoundingClientRect which
+      // returns wherever the CSS transition currently is mid-animation.
+      const targetCx = n.left + pos.current.x + n.width  / 2
+      const targetCy = n.top  + pos.current.y + n.height / 2
+
+      const dx   = e.clientX - targetCx
+      const dy   = e.clientY - targetCy
       const dist = Math.hypot(dx, dy)
 
       if (dist < FLEE_RADIUS) {
-        // Flee in the exact opposite direction of the incoming mouse
-        const angle  = Math.atan2(dy, dx)
-        const fleeX  = -Math.cos(angle) * FLEE_SPEED
-        const fleeY  = -Math.sin(angle) * FLEE_SPEED
+        const angle = Math.atan2(dy, dx)
+        const rawX  = pos.current.x - Math.cos(angle) * FLEE_SPEED
+        const rawY  = pos.current.y - Math.sin(angle) * FLEE_SPEED
 
-        const raw = {
-          x: pos.current.x + fleeX,
-          y: pos.current.y + fleeY,
-        }
-
-        // Clamp: keep button fully inside the viewport
+        // Clamp so the button stays fully inside the viewport at all times
         pos.current = {
-          x: Math.max(-rect.left + pos.current.x,
-             Math.min(window.innerWidth  - rect.right  + pos.current.x, raw.x)),
-          y: Math.max(-rect.top  + pos.current.y,
-             Math.min(window.innerHeight - rect.bottom + pos.current.y, raw.y)),
+          x: Math.max(-n.left, Math.min(window.innerWidth  - n.width  - n.left, rawX)),
+          y: Math.max(-n.top,  Math.min(window.innerHeight - n.height - n.top,  rawY)),
         }
 
         btn.style.transform = `translate(${pos.current.x}px, ${pos.current.y}px)`
@@ -59,9 +59,8 @@ export function FleeingNoButton() {
   return (
     <button
       ref={btnRef}
-      // transition-transform makes each jump smooth; duration-100 keeps it fast
       style={{ willChange: 'transform' }}
-      className="hidden sm:inline-flex items-center bg-red-800 hover:bg-red-900 text-white border-2 border-red-900 px-6 py-3 rounded-full text-sm font-bold shadow-lg shadow-red-300 select-none transition-transform duration-100 ease-out"
+      className="hidden sm:inline-flex items-center bg-red-800 text-white border-2 border-red-900 px-6 py-3 rounded-full text-sm font-bold shadow-lg shadow-red-300 select-none transition-transform duration-150 ease-out"
       aria-hidden="true"
       tabIndex={-1}
       onTouchStart={(e) => e.preventDefault()}
