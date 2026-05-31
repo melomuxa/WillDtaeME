@@ -1,9 +1,22 @@
 import Link from 'next/link'
 import { ROUTES } from '@/lib/routes'
 
+const DONATION_URL = process.env.NEXT_PUBLIC_DONATION_URL ?? 'https://buymeacoffee.com/willdate'
+
 export default function LandingPage() {
   return (
-    <main className="flex flex-col items-center justify-center min-h-screen px-6 py-24 bg-gradient-to-b from-pink-50 to-white">
+    <main className="relative flex flex-col items-center justify-center min-h-screen px-6 py-24 bg-gradient-to-b from-pink-50 to-white">
+
+      {/* Donation button — top right corner */}
+      <a
+        href={DONATION_URL}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="absolute top-5 right-5 flex items-center gap-2 bg-yellow-400 hover:bg-yellow-500 text-yellow-900 font-semibold text-sm px-4 py-2 rounded-full transition-colors shadow-sm"
+      >
+        ☕ Buy me a coffee
+      </a>
+
       {/* Hero */}
       <div className="text-center max-w-2xl">
         <p className="text-5xl mb-6">💕</p>
