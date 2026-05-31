@@ -822,3 +822,50 @@ async function submitAcceptance(locationId: string, timeId: string) {
 - Confetti animation and Framer Motion entrance animations on invite page not yet added (Phase 2)
 - Image upload for location options not yet added (Phase 2)
 - Dashboard polling/revalidation for live status updates not yet added
+
+---
+
+### Session 2 — 2026-05-31 — Production Launch + Features
+
+**Added:**
+- `prisma/migrations/20260531111415_add_recipient_name` — added `recipientName` field to Invitation
+- `app/sitemap.ts` — auto-generated sitemap.xml for Google Search
+- `app/robots.ts` — robots.txt blocking /dashboard and /api
+- `app/icon.png` — heart favicon (replaced default Next.js favicon.ico)
+- Context-aware location placeholders (20 categories, each with a relevant hint)
+- Recipient name field in CreateInvitationForm Step 1 ("Who are you inviting?")
+- Whole-day time picker for receiver: datetime-local capped at today + 14 days
+- Donation system: landing page button, create success card, email section — all gated on `NEXT_PUBLIC_DONATION_URL` env var
+
+**Modified:**
+- `auth.ts` / `auth.config.ts` — fixed MissingAdapter error by removing Resend provider from edge config
+- `lib/validations.ts` — removed `datetime({ offset: true })` which blocked form submission
+- `lib/ratelimit.ts` — fixed crash from placeholder Upstash URL (empty string now skips)
+- `components/FleeingNoButton.tsx` — dark red color, direct DOM mutation (no React state), natural position captured on mount for correct clamping, 90px radius, 90px speed, CSS transition
+- `components/invitation/CreateInvitationForm.tsx` — category picker moved above name, validation on Preview step, recipient name field, donation card
+- `components/invitation/InvitationCard.tsx` — shows "Liza said YES! ❤️", category icons, location previews
+- `app/(dashboard)/dashboard/invite/[id]/page.tsx` — "Invitation for Liza" title, personalised status badge
+- `lib/email.ts` — personalised subject/heading with recipient name, donation section gated on env var
+- `app/layout.tsx` — full SEO metadata (keywords, canonical, OpenGraph, Twitter card, metadataBase)
+- `package.json` — `prisma generate && next build` for Vercel (generated client is gitignored)
+- `.env.local` — added `NEXT_PUBLIC_DONATION_URL` placeholder
+- `README.md` — full rewrite with production details, all env vars, deployment steps
+
+**Removed:**
+- `proxy.ts` — removed entirely; was intercepting `/api/auth/callback/google` regardless of matcher config, causing JWT state mismatch errors. Dashboard protection handled server-side instead.
+- `app/favicon.ico` — removed default Next.js favicon so `icon.png` (heart) takes precedence
+
+**Bugs Fixed:**
+- Google OAuth "invalid request" — wrong client ID in Vercel (old vs new credential)
+- Google callback JWT mismatch — caused by proxy.ts intercepting auth routes; fixed by removing proxy
+- Invitation creation silently failing — Zod `datetime({ offset: true })` rejects `datetime-local` values (no TZ offset); changed to plain string
+- Accept endpoint 500 error — placeholder `UPSTASH_REDIS_REST_URL` caused DNS failure; now empty string correctly skips rate limiting
+- Button disappearing off screen — `getBoundingClientRect()` returns mid-animation values during CSS transition, causing wrong clamp bounds; fixed by tracking target position separately
+- Vercel build failing — Prisma client gitignored; added `prisma generate` to build script
+- Neon serverless timeouts on Vercel — switched to pooled connection string
+
+**Known Issues / Next Steps:**
+- Donation platform pending — `NEXT_PUBLIC_DONATION_URL` is empty; all donation UI hidden until set
+- Image upload for location options not yet added (Phase 2)
+- Dashboard polling/revalidation for live status updates not yet added
+- Framer Motion entrance animations on invite page not yet added (Phase 2)

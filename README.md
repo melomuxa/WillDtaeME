@@ -2,21 +2,23 @@
 
 > A micro-SaaS where someone creates a personalized date invitation link, sends it to their crush, and gets notified when they accept.
 
+**Live:** [willdate.me](https://willdate.me)
+
 ---
 
 ## What it does
 
 **Sender flow:**
 1. Sign in with Google or magic link email
-2. Create an invitation — write a personal message, pick venue options with icons, add time slots
+2. Create an invitation — enter recipient name, write a personal message, pick venue options with icons, add time slots
 3. Get a unique shareable link (e.g. `willdate.me/invite/aB3xK9mQ`)
 4. Share via WhatsApp or copy link
-5. Receive an email when the receiver accepts, dashboard updates with their choices
+5. Receive a personalised email ("Liza said YES! 💕") and see it in the dashboard
 
 **Receiver flow (no account needed):**
 1. Open the link
-2. See the "Will you go on a date with me?" page — `YES ✨` button and a red `NO` button that flees the cursor before you can hover on it
-3. Click YES → pick a location → pick a time (or suggest a date/time if the slot is "Any time")
+2. See the "Will you go on a date with me?" page — `YES ✨` and a dark red `NO` button that flees the cursor the moment it gets close
+3. Click YES → pick a location → pick a time (or suggest a specific date/time if the slot is "Any time")
 4. See a confetti celebration screen
 
 ---
@@ -32,10 +34,11 @@
 | Auth | NextAuth.js v5 beta — Google OAuth + Resend magic link |
 | Database | PostgreSQL (Neon) via Prisma 7 |
 | ORM | Prisma 7 with `@prisma/adapter-pg` |
-| Email | Resend |
+| Email | Resend (domain: willdate.me) |
 | Rate limiting | Upstash Redis (optional) |
 | ID generation | Nanoid |
-| Hosting | Vercel (recommended) |
+| DNS | Cloudflare |
+| Hosting | Vercel |
 
 ---
 
@@ -49,16 +52,18 @@ app/
     invite/[id]/           — Invitation detail & status
   invite/[shortId]/        — Public invite page ("Will you date me?")
     choose/                — Receiver picks location
-    time/                  — Receiver picks time
-    success/               — Celebration page
+    time/                  — Receiver picks time (+ whole-day date picker)
+    success/               — Confetti celebration
   api/
     auth/[...nextauth]/    — NextAuth handler
     invitations/           — CRUD (authenticated)
     invite/[shortId]/      — Public invite read
-      accept/              — POST acceptance
+      accept/              — POST acceptance (rate limited)
+  sitemap.ts               — Auto-generated sitemap.xml
+  robots.ts                — robots.txt
 
 components/
-  FleeingNoButton.tsx      — Cursor-fleeing NO button (direct DOM, no React state lag)
+  FleeingNoButton.tsx         — Cursor-fleeing NO button (direct DOM, no React re-renders)
   invitation/
     CreateInvitationForm.tsx  — 3-step form with emoji category picker
     InvitationCard.tsx        — Dashboard card with status + copy link
@@ -66,9 +71,9 @@ components/
 lib/
   constants.ts   — All magic numbers, category icons, flee radius
   routes.ts      — All route and API path constants
-  prisma.ts      — Prisma singleton (pg adapter)
-  email.ts       — Resend acceptance email
-  ratelimit.ts   — Upstash rate limiter (graceful skip when unconfigured)
+  prisma.ts      — Prisma singleton (pg adapter, pooled for Vercel)
+  email.ts       — Resend acceptance email with recipient name + donation section
+  ratelimit.ts   — Upstash rate limiter (skipped when unconfigured)
   validations.ts — Zod schemas
   env.ts         — Startup env var validation
 
@@ -78,28 +83,50 @@ store/
 types/
   index.ts           — Shared TypeScript interfaces
   next-auth.d.ts     — Session type extension (user.id)
+
+prisma/
+  schema.prisma      — Full schema incl. recipientName field
+  migrations/        — All applied migrations
 ```
 
 ---
 
 ## Location category icons
 
-The invitation creator picks a category using emoji buttons:
+The invitation creator picks a category first — the name field then shows a context-aware placeholder.
 
-| Category | Icon |
-|---|---|
-| Restaurant | 🍽️ |
-| Café | ☕ |
-| Bar | 🍸 |
-| Cinema | 🍿 |
-| Outdoor | 🌳 |
-| Other → custom | 🍦🍺🍕🍜🥗🍰🌮🍣🚶🚴🚗🎮🎭🏊🎳🎨 |
+| Category | Icon | Example placeholder |
+|---|---|---|
+| Restaurant | 🍽️ | `Dinner at Bella Napoli…` |
+| Café | ☕ | `Let's grab a coffee at…` |
+| Bar | 🍸 | `Cocktails at Sky Lounge…` |
+| Cinema | 🍿 | `IMAX Vue City Centre…` |
+| Outdoor | 🌳 | `Evening walk by the river…` |
+| Other → custom | 🍦🍺🍕🍜🥗🍰🌮🍣🚶🚴🚗🎮🎭🏊🎳🎨 | icon-specific hints |
+
+---
+
+## Environment variables
+
+| Variable | Required | Description |
+|---|---|---|
+| `DATABASE_URL` | ✅ | Neon PostgreSQL — use **pooled** URL for Vercel |
+| `NEXTAUTH_SECRET` | ✅ | Random 32-byte secret (`openssl rand -base64 32`) |
+| `NEXTAUTH_URL` | ✅ | Full production URL e.g. `https://willdate.me` |
+| `GOOGLE_CLIENT_ID` | ✅ | Google OAuth client ID |
+| `GOOGLE_CLIENT_SECRET` | ✅ | Google OAuth client secret |
+| `RESEND_API_KEY` | ✅ | Resend API key |
+| `EMAIL_FROM` | ✅ | e.g. `WillDate.me <noreply@willdate.me>` |
+| `NEXT_PUBLIC_APP_URL` | ✅ | Full production URL e.g. `https://willdate.me` |
+| `UPSTASH_REDIS_REST_URL` | optional | Rate limiting — skipped if empty |
+| `UPSTASH_REDIS_REST_TOKEN` | optional | Rate limiting — skipped if empty |
+| `NEXT_PUBLIC_DONATION_URL` | optional | Donation link — all donation UI hidden if empty |
 
 ---
 
 ## Local development setup
 
-### 1. Install Node.js (if not installed)
+### 1. Install Node.js
 
 ```bash
 curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash
@@ -107,7 +134,7 @@ source ~/.zshrc
 nvm install --lts
 ```
 
-### 2. Clone and install dependencies
+### 2. Clone and install
 
 ```bash
 git clone https://github.com/melomuxa/WillDtaeME.git
@@ -115,40 +142,11 @@ cd WillDtaeME
 npm install
 ```
 
-### 3. Set up environment variables
+### 3. Set up `.env.local` and `.env`
 
-Copy `.env.local` and fill in the values:
-
-```bash
-# Database — get a free Postgres at https://neon.tech
-DATABASE_URL="postgresql://user:pass@host/dbname?sslmode=require"
-
-# Auth — generate with: openssl rand -base64 32
-NEXTAUTH_SECRET="..."
-NEXTAUTH_URL="http://localhost:3000"
-
-# Google OAuth — https://console.cloud.google.com
-# Authorized redirect URI: http://localhost:3000/api/auth/callback/google
-GOOGLE_CLIENT_ID="....apps.googleusercontent.com"
-GOOGLE_CLIENT_SECRET="GOCSPX-..."
-
-# Resend — https://resend.com
-RESEND_API_KEY="re_..."
-EMAIL_FROM="WillDate.me <onboarding@resend.dev>"
-
-# Upstash Redis — optional, rate limiting is skipped when empty
-UPSTASH_REDIS_REST_URL=""
-UPSTASH_REDIS_REST_TOKEN=""
-
-# Public
-NEXT_PUBLIC_APP_URL="http://localhost:3000"
-```
-
-Also set `DATABASE_URL` in `.env` (used by Prisma CLI):
-
-```bash
-DATABASE_URL="postgresql://..."
-```
+Fill in required variables from the table above.
+- `.env.local` — used by Next.js at runtime
+- `.env` — used by Prisma CLI (`DATABASE_URL` only, use direct connection not pooled)
 
 ### 4. Run database migration
 
@@ -159,6 +157,7 @@ npx prisma migrate dev --name init
 ### 5. Start dev server
 
 ```bash
+source ~/.zshrc   # loads nvm so npm is available
 npm run dev
 ```
 
@@ -166,41 +165,44 @@ Open [http://localhost:3000](http://localhost:3000).
 
 ---
 
+## Production deployment
+
+1. **Vercel** — import `melomuxa/WillDtaeME`, add all env vars, deploy
+2. **Neon** — use the **pooled** connection string in `DATABASE_URL` on Vercel (serverless requirement)
+3. **Cloudflare** — domain DNS pointing to Vercel (A record + CNAME). SSL/TLS set to **Full (strict)**
+4. **Google Console** — add `https://willdate.me` as authorized JavaScript origin and `https://willdate.me/api/auth/callback/google` as redirect URI
+5. **Resend** — verify `willdate.me` domain, set `EMAIL_FROM=WillDate.me <noreply@willdate.me>`
+
+---
+
 ## Key technical decisions
 
-**Prisma 7** requires a driver adapter — `@prisma/adapter-pg` is used. `new PrismaClient()` without an adapter throws.
+**Prisma 7** requires a driver adapter — `@prisma/adapter-pg` is used. `new PrismaClient()` without args throws. On Vercel use Neon's **pooled** connection string to avoid serverless connection timeouts.
 
-**Next.js 16** renamed `middleware.ts` → `proxy.ts`. The named export must be `proxy`.
+**No middleware/proxy** — `proxy.ts` was removed because NextAuth's `auth` function intercepts `/api/auth/*` routes regardless of the matcher, causing JWT state mismatches. Dashboard routes are protected server-side via `auth()` in each server component instead.
 
-**Auth split** — `auth.config.ts` (edge-safe, no Prisma) is used by `proxy.ts`. `auth.ts` (with PrismaAdapter + Resend provider) is used by server components and API routes. The Resend email provider requires a database adapter and cannot be in the edge config.
+**Auth split** — `auth.config.ts` (edge-safe, no Prisma, no Resend provider) is kept for future use. `auth.ts` (with PrismaAdapter + Resend) is used by all server routes. Resend requires a DB adapter and cannot be in the edge config.
 
-**NO button** — uses direct DOM mutation (`btn.style.transform`) instead of React state so there is zero re-render latency. Flee radius is 90px so it starts moving before the cursor reaches it. CSS `transition-transform duration-100` makes it smooth.
+**NO button** — uses direct DOM mutation (`btn.style.transform`) not React state, so movement is zero-latency. Natural position captured on mount for correct viewport clamping during CSS transitions. Flee radius 90px, speed 90px, `transition-transform duration-150` for smooth animation.
 
-**Receiver time suggestion** — when a sender marks a time slot as "Any time — whole day", the receiver gets a `datetime-local` picker capped at today + 14 days. Their suggestion is stored in `receiverNote` on the invitation.
+**Recipient name** — stored as `recipientName` on the Invitation. Dashboard badge shows "Liza said YES! ❤️", email subject becomes "💕 Liza said YES!", detail page title becomes "Invitation for Liza".
 
----
+**Donation system** — all donation UI (landing page button, create success card, email section) is hidden when `NEXT_PUBLIC_DONATION_URL` is empty. Set the env var in Vercel to re-enable with zero code changes.
 
-## Deployment (Vercel)
-
-1. Push to GitHub
-2. Import the repo at [vercel.com/new](https://vercel.com/new)
-3. Add all environment variables from `.env.local` in the Vercel dashboard
-4. Deploy — Vercel auto-detects Next.js
-
-For production, set `NEXT_PUBLIC_APP_URL` to your real domain and add it as an authorized redirect URI in Google Cloud Console.
+**SEO** — `app/sitemap.ts` generates `/sitemap.xml`, `app/robots.ts` generates `/robots.txt` blocking `/dashboard` and `/api`. Full OpenGraph + Twitter card metadata in `layout.tsx`. Submitted to Google Search Console.
 
 ---
 
-## Database schema (Prisma)
+## Database schema
 
 ```
-User          — sender accounts (NextAuth)
-Invitation    — the date invite (shortId = public URL token)
-LocationOption — venue choices added by sender
-TimeOption    — time slots added by sender
-Account/Session/VerificationToken — NextAuth adapter tables
+User              — sender accounts (NextAuth)
+Invitation        — the date invite (shortId = public URL token, recipientName = who it's for)
+LocationOption    — venue choices defined by sender
+TimeOption        — time slots defined by sender (isWholeDay supported)
+Account / Session / VerificationToken — NextAuth adapter tables
 ```
 
 ---
 
-*Built with Next.js · PostgreSQL · Resend · Hosted on Vercel*
+*Built with Next.js · PostgreSQL · Resend · Cloudflare · Deployed on Vercel*
