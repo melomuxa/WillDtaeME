@@ -14,6 +14,43 @@ import {
 import { API_ROUTES, ROUTES } from '@/lib/routes'
 import { CopyButton } from '@/components/ui/CopyButton'
 
+// Context-aware placeholders so the name field gives real inspiration
+const LOCATION_PLACEHOLDERS: Record<string, string> = {
+  'Restaurant':   'e.g. Little Italy, Sushi Garden, The Steak House…',
+  'Café':         'e.g. Let\'s grab a coffee at Blue Bottle…',
+  'Bar':          'e.g. Cocktails at Sky Lounge, The Rooftop Bar…',
+  'Cinema':       'e.g. IMAX Vue City Centre, Odeon…',
+  'Outdoor':      'e.g. Riverside Park, City Gardens, the lake…',
+  '🍦 Ice Cream': 'e.g. Gelato walk by the river…',
+  '🍺 Beer':      'e.g. Craft beer at The Tap Room…',
+  '🍕 Pizza':     'e.g. Pizza date at Napoli…',
+  '🍜 Noodles':   'e.g. Ramen at Ichiran…',
+  '🥗 Salad':     'e.g. Healthy bowl at Sweetgreen…',
+  '🍰 Dessert':   'e.g. Dessert & wine at Patisserie…',
+  '🌮 Tacos':     'e.g. Taco Tuesday at La Cantina…',
+  '🍣 Sushi':     'e.g. Omakase at Nobu…',
+  '🚶 Walking':   'e.g. Walk around the old town…',
+  '🚴 Biking':    'e.g. Bike ride along the canal…',
+  '🚗 Driving':   'e.g. Scenic drive to the mountains…',
+  '🎮 Gaming':    'e.g. Retro game night at Pixel Bar…',
+  '🎭 Theatre':   'e.g. Show at the National Theatre…',
+  '🏊 Swimming':  'e.g. Evening swim at Lido…',
+  '🎳 Bowling':   'e.g. Bowling at Strike City…',
+  '🎨 Art':       'e.g. Gallery walk + wine…',
+}
+
+function getLocationPlaceholder(category: string | undefined): string {
+  if (!category) return 'e.g. Café Lula, Riverside Park, Sky Bar…'
+  return LOCATION_PLACEHOLDERS[category] ?? 'e.g. Our favourite spot…'
+}
+
+const TIME_PLACEHOLDERS = [
+  'e.g. Saturday 8 PM',
+  'e.g. Sunday afternoon',
+  'e.g. Friday evening',
+  'e.g. Any evening this week',
+]
+
 const STEPS = ['Message', 'Options', 'Preview'] as const
 type Step = 0 | 1 | 2
 
@@ -196,17 +233,7 @@ export function CreateInvitationForm() {
                     )}
                   </div>
 
-                  {/* Name */}
-                  <input
-                    {...register(`locationOptions.${i}.name`)}
-                    placeholder="e.g. Café Lula, Riverside Park…"
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-pink-300"
-                  />
-                  {errors.locationOptions?.[i]?.name && (
-                    <p className="text-red-500 text-xs">{errors.locationOptions[i]?.name?.message}</p>
-                  )}
-
-                  {/* Category picker */}
+                  {/* Category first — so the name placeholder is relevant */}
                   <Controller
                     control={control}
                     name={`locationOptions.${i}.category`}
@@ -214,6 +241,16 @@ export function CreateInvitationForm() {
                       <CategoryPicker value={value ?? ''} onChange={onChange} />
                     )}
                   />
+
+                  {/* Name — placeholder updates based on chosen category */}
+                  <input
+                    {...register(`locationOptions.${i}.name`)}
+                    placeholder={getLocationPlaceholder(watch(`locationOptions.${i}.category`) ?? '')}
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-pink-300"
+                  />
+                  {errors.locationOptions?.[i]?.name && (
+                    <p className="text-red-500 text-xs">{errors.locationOptions[i]?.name?.message}</p>
+                  )}
 
                   {/* Address */}
                   <input
@@ -251,7 +288,7 @@ export function CreateInvitationForm() {
                   </div>
                   <input
                     {...register(`timeOptions.${i}.label`)}
-                    placeholder="e.g. Saturday 8 PM"
+                    placeholder={TIME_PLACEHOLDERS[i % TIME_PLACEHOLDERS.length]}
                     className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-pink-300"
                   />
                   {errors.timeOptions?.[i]?.label && (
