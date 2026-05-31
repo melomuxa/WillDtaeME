@@ -35,7 +35,7 @@ export function CreateInvitationForm() {
     },
   })
 
-  const { register, control, handleSubmit, watch, formState: { errors } } = form
+  const { register, control, handleSubmit, watch, trigger, formState: { errors } } = form
 
   const {
     fields: locationFields,
@@ -290,7 +290,14 @@ export function CreateInvitationForm() {
             <button type="button" onClick={() => setStep(0)} className="text-gray-500 hover:text-gray-700 text-sm font-medium">
               ← Back
             </button>
-            <button type="button" onClick={() => setStep(2)} className="bg-pink-500 hover:bg-pink-600 text-white font-semibold px-6 py-2.5 rounded-full transition-colors">
+            <button
+              type="button"
+              onClick={async () => {
+                const valid = await trigger(['locationOptions', 'timeOptions'])
+                if (valid) setStep(2)
+              }}
+              className="bg-pink-500 hover:bg-pink-600 text-white font-semibold px-6 py-2.5 rounded-full transition-colors"
+            >
               Preview →
             </button>
           </div>

@@ -11,6 +11,10 @@ export const metadata: Metadata = {
   title: 'WillDate.me — Ask them out. Unforgettably.',
   description:
     'Create a personalized date invitation, share the link, and get notified when they say yes.',
+  icons: {
+    icon: '/icon.png',
+    apple: '/icon.png',
+  },
   openGraph: {
     title: 'WillDate.me',
     description: 'Will you go on a date with me? 💕',

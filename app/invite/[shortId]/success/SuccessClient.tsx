@@ -41,7 +41,7 @@ export function SuccessClient() {
       <p className="text-7xl mb-6">🎉</p>
       <h1 className="text-4xl font-bold text-gray-900 mb-4">You said YES!</h1>
       <p className="text-xl text-gray-600 max-w-sm leading-relaxed">
-        They&apos;re going to be <strong>SO happy</strong>. Get ready for an amazing date! 💖
+        Get ready for an amazing date! 💖
       </p>
 
       {/* Floating hearts */}
