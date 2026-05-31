@@ -114,7 +114,7 @@ export function CreateInvitationForm() {
 
   if (createdShortId) {
     const shareUrl = `${process.env.NEXT_PUBLIC_APP_URL}${ROUTES.INVITE(createdShortId)}`
-    const donationUrl = process.env.NEXT_PUBLIC_DONATION_URL ?? 'https://buymeacoffee.com/willdate'
+    const donationUrl = process.env.NEXT_PUBLIC_DONATION_URL || null
 
     return (
       <div className="space-y-4">
@@ -148,24 +148,26 @@ export function CreateInvitationForm() {
           </div>
         </div>
 
-        {/* Donation card */}
-        <div className="bg-yellow-50 border border-yellow-100 rounded-2xl p-5 text-center">
-          <p className="text-2xl mb-2">☕</p>
-          <p className="text-sm font-semibold text-yellow-800 mb-1">
-            If she says yes — buy me a coffee?
-          </p>
-          <p className="text-xs text-yellow-600 mb-3">
-            WillDate.me is free. If it works and you go on that date, a small coffee keeps this running 💛
-          </p>
-          <a
-            href={donationUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-block bg-yellow-400 hover:bg-yellow-500 text-yellow-900 font-semibold text-sm px-5 py-2 rounded-full transition-colors"
-          >
-            ☕ Buy me a coffee
-          </a>
-        </div>
+        {/* Donation card — hidden until NEXT_PUBLIC_DONATION_URL is set */}
+        {donationUrl && (
+          <div className="bg-yellow-50 border border-yellow-100 rounded-2xl p-5 text-center">
+            <p className="text-2xl mb-2">☕</p>
+            <p className="text-sm font-semibold text-yellow-800 mb-1">
+              If she says yes — buy me a coffee?
+            </p>
+            <p className="text-xs text-yellow-600 mb-3">
+              WillDate.me is free. If it works and you go on that date, a small coffee keeps this running 💛
+            </p>
+            <a
+              href={donationUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-block bg-yellow-400 hover:bg-yellow-500 text-yellow-900 font-semibold text-sm px-5 py-2 rounded-full transition-colors"
+            >
+              ☕ Buy me a coffee
+            </a>
+          </div>
+        )}
       </div>
     )
   }

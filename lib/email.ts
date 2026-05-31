@@ -33,7 +33,7 @@ interface AcceptanceEmailProps {
  */
 export async function sendAcceptanceEmail(props: AcceptanceEmailProps): Promise<void> {
   const dashboardUrl = `${env.NEXT_PUBLIC_APP_URL}${ROUTES.DASHBOARD}`
-  const donationUrl = process.env.NEXT_PUBLIC_DONATION_URL ?? 'https://buymeacoffee.com/willdate'
+  const donationUrl = process.env.NEXT_PUBLIC_DONATION_URL || null
   const recipientLabel = props.recipientName ? escapeHtml(props.recipientName) : 'They'
 
   await getResend().emails.send({
@@ -65,7 +65,8 @@ export async function sendAcceptanceEmail(props: AcceptanceEmailProps): Promise<
             View Dashboard →
           </a>
 
-          <!-- Donation section -->
+          <!-- Donation section — only shown when NEXT_PUBLIC_DONATION_URL is set -->
+          ${donationUrl ? `
           <div style="margin-top: 40px; padding: 20px; background: #fefce8; border-radius: 12px; text-align: center; border: 1px solid #fef08a;">
             <p style="font-size: 24px; margin: 0 0 8px;">☕</p>
             <p style="font-weight: bold; color: #854d0e; margin: 0 0 6px;">
@@ -80,7 +81,7 @@ export async function sendAcceptanceEmail(props: AcceptanceEmailProps): Promise<
             >
               ☕ Buy me a coffee
             </a>
-          </div>
+          </div>` : ''}
 
           <p style="margin-top: 32px; font-size: 12px; color: #9ca3af; text-align: center;">
             Sent by <a href="${env.NEXT_PUBLIC_APP_URL}" style="color: #e91e8c; text-decoration: none;">WillDate.me</a>
