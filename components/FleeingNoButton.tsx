@@ -30,15 +30,31 @@ const TAUNTS = [
   'Just say YES 😉',
 ] as const
 
+/** Extra padding kept around the avoided (YES) button so taps never clip it. */
+const AVOID_PADDING_PX = 12
+
+/** How many random spots to try before giving up on avoiding the YES button. */
+const MAX_PLACEMENT_TRIES = 24
+
 interface FleeingNoButtonProps {
   /**
    * Called every time the button successfully dodges (cursor flee or tap).
    * Used by the parent to grow the YES button so it becomes more tempting.
    */
   onEvade?: () => void
+
+  /**
+   * Returns the viewport rect the button must never land on top of (the YES
+   * button), or null. On mobile a tap on a NO sitting over YES bubbles to YES
+   * and accepts by accident, so the teleport rejects any overlapping spot. This
+   * is a callback (not a ref) so the parent can report YES's MAXIMUM footprint —
+   * YES grows with a CSS transition, so its live rect is smaller than its final
+   * size mid-animation and would let NO slip underneath it.
+   */
+  getAvoidRect?: () => { left: number; top: number; right: number; bottom: number } | null
 }
 
-export function FleeingNoButton({ onEvade }: FleeingNoButtonProps) {
+export function FleeingNoButton({ onEvade, getAvoidRect }: FleeingNoButtonProps) {
   const btnRef = useRef<HTMLButtonElement>(null)
 
   // Tracks the TARGET offset (where the button is going, not mid-animation).
@@ -54,6 +70,13 @@ export function FleeingNoButton({ onEvade }: FleeingNoButtonProps) {
   // race React state updates; the label is the only thing that needs a re-render.
   const scale = useRef(1)
   const tapCount = useRef(0)
+
+  // Once the button has dodged once we pin it with position:fixed. While it sits
+  // in the centered flex row, changing the label ("NO" → "Just say YES 😉")
+  // re-centers the row and shifts the button's layout origin out from under our
+  // translate math, drifting it off the left edge. Fixed freezes the anchor (and
+  // lets YES recenter as a bonus).
+  const detached = useRef(false)
 
   const [label, setLabel] = useState<string>(TAUNTS[0])
 
@@ -79,6 +102,21 @@ export function FleeingNoButton({ onEvade }: FleeingNoButtonProps) {
     w: document.documentElement.clientWidth,
     h: document.documentElement.clientHeight,
   })
+
+  // Pin the button at its current spot with position:fixed the first time it
+  // dodges. Must be called while the transform is still identity (no prior
+  // dodge) so getBoundingClientRect reads the true in-flow position.
+  const ensureDetached = useCallback(() => {
+    const btn = btnRef.current
+    if (!btn || detached.current) return
+    const r = btn.getBoundingClientRect()
+    natural.current = { left: r.left, top: r.top }
+    btn.style.position = 'fixed'
+    btn.style.left = `${r.left}px`
+    btn.style.top = `${r.top}px`
+    btn.style.margin = '0'
+    detached.current = true
+  }, [])
 
   useEffect(() => {
     const btn = btnRef.current
@@ -106,6 +144,7 @@ export function FleeingNoButton({ onEvade }: FleeingNoButtonProps) {
       const dist = Math.hypot(dx, dy)
 
       if (dist < FLEE_RADIUS) {
+        ensureDetached()
         const angle = Math.atan2(dy, dx)
         const rawX = pos.current.x - Math.cos(angle) * FLEE_SPEED
         const rawY = pos.current.y - Math.sin(angle) * FLEE_SPEED
@@ -125,7 +164,7 @@ export function FleeingNoButton({ onEvade }: FleeingNoButtonProps) {
 
     window.addEventListener('mousemove', handleMouseMove)
     return () => window.removeEventListener('mousemove', handleMouseMove)
-  }, [applyTransform])
+  }, [applyTransform, ensureDetached])
 
   /**
    * Mobile dodge. Fires on pointerdown — which lands BEFORE the tap completes —
@@ -149,6 +188,9 @@ export function FleeingNoButton({ onEvade }: FleeingNoButtonProps) {
       onEvadeRef.current?.()
 
       requestAnimationFrame(() => {
+        // Pin to fixed on the first tap (transform is still identity here, so the
+        // captured anchor is the true in-flow spot). Frozen anchor = stable math.
+        ensureDetached()
         const n = natural.current
         // transform-origin is top-left (see style), so translate maps the
         // layout top-left exactly to (vx, vy) and the visible box is the layout
@@ -161,15 +203,30 @@ export function FleeingNoButton({ onEvade }: FleeingNoButtonProps) {
         const { w: vw, h: vh } = viewport()
         const maxX = Math.max(VIEWPORT_MARGIN_PX, vw - w - VIEWPORT_MARGIN_PX)
         const maxY = Math.max(VIEWPORT_MARGIN_PX, vh - h - VIEWPORT_MARGIN_PX)
-        const vx = VIEWPORT_MARGIN_PX + Math.random() * (maxX - VIEWPORT_MARGIN_PX)
-        const vy = VIEWPORT_MARGIN_PX + Math.random() * (maxY - VIEWPORT_MARGIN_PX)
+
+        // The YES button's rect (padded) is a no-go zone — landing on it lets a
+        // tap fall through to YES. Retry until we find a non-overlapping spot.
+        const avoid = getAvoidRect?.()
+        let vx = 0
+        let vy = 0
+        for (let tries = 0; tries < MAX_PLACEMENT_TRIES; tries++) {
+          vx = VIEWPORT_MARGIN_PX + Math.random() * (maxX - VIEWPORT_MARGIN_PX)
+          vy = VIEWPORT_MARGIN_PX + Math.random() * (maxY - VIEWPORT_MARGIN_PX)
+          if (!avoid) break
+          const overlaps =
+            vx < avoid.right + AVOID_PADDING_PX &&
+            vx + w > avoid.left - AVOID_PADDING_PX &&
+            vy < avoid.bottom + AVOID_PADDING_PX &&
+            vy + h > avoid.top - AVOID_PADDING_PX
+          if (!overlaps) break
+        }
 
         // Translate is relative to the natural resting spot captured on mount.
         pos.current = { x: vx - n.left, y: vy - n.top }
         applyTransform()
       })
     },
-    [applyTransform]
+    [applyTransform, getAvoidRect, ensureDetached]
   )
 
   return (

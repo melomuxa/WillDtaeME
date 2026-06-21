@@ -1,7 +1,7 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { FleeingNoButton } from '@/components/FleeingNoButton'
 import { ROUTES } from '@/lib/routes'
 import type { PublicInvitation } from '@/types'
@@ -21,6 +21,24 @@ export function InvitePage({ invitation }: InvitePageProps) {
   // the harder NO is to catch, the more tempting YES becomes.
   const [evadeCount, setEvadeCount] = useState(0)
   const yesScale = 1 + Math.min(evadeCount * YES_GROWTH_PER_EVADE, YES_MAX_GROWTH)
+
+  // The No button avoids this rect so it never teleports on top of Yes (a tap
+  // on a No covering Yes would otherwise fall through and accept by accident).
+  // We report Yes's MAXIMUM footprint: its center is fixed (center-origin
+  // scaling) but it grows with a transition, so the live rect is too small
+  // mid-animation. offsetWidth is the unscaled size; × max scale = final size.
+  const yesRef = useRef<HTMLButtonElement>(null)
+  const getYesAvoidRect = () => {
+    const el = yesRef.current
+    if (!el) return null
+    const r = el.getBoundingClientRect()
+    const cx = r.left + r.width / 2
+    const cy = r.top + r.height / 2
+    const maxScale = 1 + YES_MAX_GROWTH
+    const halfW = (el.offsetWidth * maxScale) / 2
+    const halfH = (el.offsetHeight * maxScale) / 2
+    return { left: cx - halfW, top: cy - halfH, right: cx + halfW, bottom: cy + halfH }
+  }
 
   function handleYes() {
     router.push(ROUTES.INVITE_CHOOSE(invitation.shortId))
@@ -60,6 +78,7 @@ export function InvitePage({ invitation }: InvitePageProps) {
         <div className="flex items-center justify-center gap-6">
           {/* Yes button — primary, pulsing, easy to click. Grows as NO dodges. */}
           <button
+            ref={yesRef}
             onClick={handleYes}
             style={{ transform: `scale(${yesScale})` }}
             className="bg-pink-500 hover:bg-pink-600 text-white font-bold text-xl px-10 py-4 rounded-full shadow-lg shadow-pink-200 transition-transform duration-300 animate-pulse hover:animate-none active:scale-95"
@@ -68,7 +87,7 @@ export function InvitePage({ invitation }: InvitePageProps) {
           </button>
 
           {/* No button — flees the cursor on desktop, dodges taps on mobile */}
-          <FleeingNoButton onEvade={() => setEvadeCount((c) => c + 1)} />
+          <FleeingNoButton onEvade={() => setEvadeCount((c) => c + 1)} getAvoidRect={getYesAvoidRect} />
         </div>
       </div>
     </main>
