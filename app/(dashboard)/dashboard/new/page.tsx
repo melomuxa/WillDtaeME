@@ -9,7 +9,7 @@ export default async function NewInvitationPage() {
   if (!session?.user?.id) redirect(ROUTES.LOGIN)
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-pink-50 to-white">
+    <main className="min-h-screen overflow-x-hidden bg-gradient-to-b from-pink-50 to-white">
       <div className="max-w-2xl mx-auto px-6 py-12">
         <Link href={ROUTES.DASHBOARD} className="text-pink-500 hover:underline text-sm mb-6 block">
           ← Back to dashboard

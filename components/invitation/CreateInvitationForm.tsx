@@ -126,11 +126,13 @@ export function CreateInvitationForm() {
             <input
               readOnly
               value={shareUrl}
-              className="flex-1 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700"
+              // min-w-0 lets the flex item shrink below the input's default
+              // intrinsic width so the long URL doesn't force horizontal scroll.
+              className="flex-1 min-w-0 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700"
             />
             <CopyButton text={shareUrl} />
           </div>
-          <div className="flex gap-3 justify-center">
+          <div className="flex flex-wrap gap-3 justify-center">
             <a
               href={`https://wa.me/?text=${encodeURIComponent(shareUrl)}`}
               target="_blank"
@@ -331,7 +333,10 @@ export function CreateInvitationForm() {
                     <input
                       type="datetime-local"
                       {...register(`timeOptions.${i}.datetime`)}
-                      className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-pink-300"
+                      // w-full + max-w-full: iOS renders datetime-local as a wide
+                      // native control that doesn't shrink and pushed the page
+                      // into horizontal scroll without these.
+                      className="block w-full max-w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-pink-300"
                     />
                   )}
                 </div>

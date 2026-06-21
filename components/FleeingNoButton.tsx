@@ -47,8 +47,8 @@ export function FleeingNoButton({ onEvade }: FleeingNoButtonProps) {
   // which makes clamping calculations wrong and lets the button drift off screen.
   const pos = useRef({ x: 0, y: 0 })
 
-  // Natural resting position — captured once on mount, never changes.
-  const natural = useRef({ left: 0, top: 0, width: 0, height: 0 })
+  // Natural resting position — captured ONCE on mount, never changes.
+  const natural = useRef({ left: 0, top: 0 })
 
   // Current scale, shrunk on each mobile tap. Kept in a ref so rapid taps don't
   // race React state updates; the label is the only thing that needs a re-render.
@@ -57,6 +57,15 @@ export function FleeingNoButton({ onEvade }: FleeingNoButtonProps) {
 
   const [label, setLabel] = useState<string>(TAUNTS[0])
 
+  // Latest onEvade kept in a ref so the mount-only effect never lists it as a
+  // dependency. If it were a dependency, every dodge (which calls onEvade →
+  // parent setState → re-render → new onEvade identity) would re-run the effect,
+  // recapturing `natural` from the ALREADY-translated button. That corrupted the
+  // position math: the button stopped fleeing on desktop and crossed the screen
+  // edge on mobile after a few interactions.
+  const onEvadeRef = useRef(onEvade)
+  onEvadeRef.current = onEvade
+
   // Writes the current target position + scale to the element in one transform.
   const applyTransform = useCallback(() => {
     const btn = btnRef.current
@@ -64,23 +73,33 @@ export function FleeingNoButton({ onEvade }: FleeingNoButtonProps) {
     btn.style.transform = `translate(${pos.current.x}px, ${pos.current.y}px) scale(${scale.current})`
   }, [])
 
+  // Visible viewport size, excluding scrollbars (clientWidth/Height are more
+  // reliable than window.innerWidth on mobile, which can include overscroll).
+  const viewport = () => ({
+    w: document.documentElement.clientWidth,
+    h: document.documentElement.clientHeight,
+  })
+
   useEffect(() => {
     const btn = btnRef.current
     if (!btn) return
 
     // Capture resting position before any movement
     const r = btn.getBoundingClientRect()
-    natural.current = { left: r.left, top: r.top, width: r.width, height: r.height }
+    natural.current = { left: r.left, top: r.top }
 
     // Desktop: flee from the cursor when it gets close. Touch devices don't fire
     // mousemove, so this is a no-op there — the tap handler below covers mobile.
     const handleMouseMove = (e: MouseEvent) => {
       const n = natural.current
+      // Measure live so the math is correct even after the button has shrunk.
+      const w = btn.offsetWidth * scale.current
+      const h = btn.offsetHeight * scale.current
 
       // Use TARGET position (pos.current) — not getBoundingClientRect which
       // returns wherever the CSS transition currently is mid-animation.
-      const targetCx = n.left + pos.current.x + n.width / 2
-      const targetCy = n.top + pos.current.y + n.height / 2
+      const targetCx = n.left + pos.current.x + w / 2
+      const targetCy = n.top + pos.current.y + h / 2
 
       const dx = e.clientX - targetCx
       const dy = e.clientY - targetCy
@@ -91,20 +110,22 @@ export function FleeingNoButton({ onEvade }: FleeingNoButtonProps) {
         const rawX = pos.current.x - Math.cos(angle) * FLEE_SPEED
         const rawY = pos.current.y - Math.sin(angle) * FLEE_SPEED
 
-        // Clamp so the button stays fully inside the viewport at all times
+        // Clamp so the button stays fully inside the viewport at all times.
+        // transform-origin is top-left, so the visible left edge is n.left+pos.x.
+        const { w: vw, h: vh } = viewport()
         pos.current = {
-          x: Math.max(-n.left, Math.min(window.innerWidth - n.width - n.left, rawX)),
-          y: Math.max(-n.top, Math.min(window.innerHeight - n.height - n.top, rawY)),
+          x: Math.max(VIEWPORT_MARGIN_PX - n.left, Math.min(vw - w - VIEWPORT_MARGIN_PX - n.left, rawX)),
+          y: Math.max(VIEWPORT_MARGIN_PX - n.top, Math.min(vh - h - VIEWPORT_MARGIN_PX - n.top, rawY)),
         }
 
         applyTransform()
-        onEvade?.()
+        onEvadeRef.current?.()
       }
     }
 
     window.addEventListener('mousemove', handleMouseMove)
     return () => window.removeEventListener('mousemove', handleMouseMove)
-  }, [applyTransform, onEvade])
+  }, [applyTransform])
 
   /**
    * Mobile dodge. Fires on pointerdown — which lands BEFORE the tap completes —
@@ -125,7 +146,7 @@ export function FleeingNoButton({ onEvade }: FleeingNoButtonProps) {
       tapCount.current += 1
       setLabel(TAUNTS[tapCount.current % TAUNTS.length])
       scale.current = Math.max(MIN_SCALE, scale.current - SHRINK_PER_TAP)
-      onEvade?.()
+      onEvadeRef.current?.()
 
       requestAnimationFrame(() => {
         const n = natural.current
@@ -137,8 +158,9 @@ export function FleeingNoButton({ onEvade }: FleeingNoButtonProps) {
         const h = btn.offsetHeight * scale.current
 
         // Pick a random viewport position, kept fully on-screen with a margin.
-        const maxX = Math.max(VIEWPORT_MARGIN_PX, window.innerWidth - w - VIEWPORT_MARGIN_PX)
-        const maxY = Math.max(VIEWPORT_MARGIN_PX, window.innerHeight - h - VIEWPORT_MARGIN_PX)
+        const { w: vw, h: vh } = viewport()
+        const maxX = Math.max(VIEWPORT_MARGIN_PX, vw - w - VIEWPORT_MARGIN_PX)
+        const maxY = Math.max(VIEWPORT_MARGIN_PX, vh - h - VIEWPORT_MARGIN_PX)
         const vx = VIEWPORT_MARGIN_PX + Math.random() * (maxX - VIEWPORT_MARGIN_PX)
         const vy = VIEWPORT_MARGIN_PX + Math.random() * (maxY - VIEWPORT_MARGIN_PX)
 
@@ -147,7 +169,7 @@ export function FleeingNoButton({ onEvade }: FleeingNoButtonProps) {
         applyTransform()
       })
     },
-    [applyTransform, onEvade]
+    [applyTransform]
   )
 
   return (
