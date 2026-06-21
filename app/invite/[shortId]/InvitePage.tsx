@@ -64,16 +64,12 @@ export function InvitePage({ invitation }: InvitePageProps) {
         <p className="text-6xl mb-6 animate-bounce">💕</p>
 
         {invitation.personalMessage && (
-          <div className="bg-white rounded-2xl border border-pink-100 shadow-sm px-6 py-4 mb-8 text-left">
-            <p className="text-gray-700 italic text-sm leading-relaxed">
+          <div className="bg-white rounded-2xl border border-pink-100 shadow-sm px-6 py-5 mb-10 text-left">
+            <p className="text-gray-700 italic text-lg leading-relaxed">
               &ldquo;{invitation.personalMessage}&rdquo;
             </p>
           </div>
         )}
-
-        <h1 className="text-4xl font-bold text-gray-900 mb-10 leading-tight">
-          Will you go on a date with me? 💕
-        </h1>
 
         <div className="flex items-center justify-center gap-6">
           {/* Yes button — primary, pulsing, easy to click. Grows as NO dodges. */}
